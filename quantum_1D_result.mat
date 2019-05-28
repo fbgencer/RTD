@@ -1,0 +1,102 @@
+# Created by Octave 4.0.0, Wed May 01 00:35:42 2019 +03 <fbgencer@fbgencer-Inspiron-5521>
+# name: E_eig
+# type: diagonal matrix
+# rows: 2
+# columns: 2
+163.3649575342916
+353.345926784081
+
+
+# name: H_matrix
+# type: matrix
+# rows: 2
+# columns: 2
+ 163.3649575342916 -4.950103911841031e-14
+ -4.950103911841031e-14 353.345926784081
+
+
+# name: L_well
+# type: scalar
+10
+
+
+# name: OPTS
+# type: scalar struct
+# ndims: 2
+ 1 1
+# length: 3
+# name: isreal
+# type: scalar
+1
+
+
+# name: issym
+# type: scalar
+1
+
+
+# name: disp
+# type: scalar
+0
+
+
+
+
+# name: V_matrix
+# type: matrix
+# rows: 2
+# columns: 2
+ 163.3637075342916 -4.950103911841031e-14
+ -4.950103911841031e-14 353.340926784081
+
+
+# name: ans
+# type: scalar
+1
+
+
+# name: basis_coeff
+# type: matrix
+# rows: 2
+# columns: 2
+ -1 -2.605578827915427e-16
+ -2.605578827915427e-16 1
+
+
+# name: calc_V_ext
+# type: sq_string
+# elements: 1
+# length: 14
+harmonic_V_ext
+
+
+# name: iflag
+# type: scalar
+1
+
+
+# name: iflag_main
+# type: scalar
+0
+
+
+# name: lambda_LM
+# type: scalar
+353.345926784081
+
+
+# name: lambda_SM
+# type: scalar
+163.3649575342916
+
+
+# name: num_basis
+# type: scalar
+2
+
+
+# name: num_states
+# type: scalar
+4
+
+

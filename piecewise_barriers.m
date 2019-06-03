@@ -1,27 +1,60 @@
 %double barrier
-close all
-
+clear; clc;
+close all;
+q_e =1.602e-19;
+um = 1e-6;
+nm = 1e-9;
+eV = 1.6*10^-19;
+hbar =1.0545718e-34; me = 9.110e-31; q_e =1.602e-19;
+um = 1e-6; nm = 1e-9;
+me = 0.063*me;
+%me = 0.0919*me;
 kB = 1.38 *1e-23;
-T = 300;
 
 
+%V_app = linspace(0,0,1);
+%for iter = 1:size(V_app,2)
+
+left_contact_length = 5;
+right_contact_length = 5;
+
+barrier_length = 2;
+gap_length = 5;
+
+barrier_potential = 1; 
+applied_voltage = 1;%V_app(iter);
+gap_potential = 0;
+
+%potential_profile = @(x) (-applied_voltage*x/(gap_length+2*barrier_length) + applied_voltage*(((left_contact_length+gap_length+2*barrier_length))/(gap_length+2*barrier_length)));
+
+potential_profile = @(x) (-applied_voltage*x/(gap_length+2*barrier_length) + ...
+applied_voltage*(((left_contact_length+gap_length+2*barrier_length))/(gap_length+2*barrier_length)));
+
+%potential_profile = @(x) (-applied_voltage*sin(2*pi*0.1*x));
+
+dx_barrier = 50;
+dgap = 50;
+w_barrier = (barrier_length/dx_barrier)*ones(1,dx_barrier);
+w_gap = (gap_length/dgap)*ones(1,dgap);
+
+b1_x1= right_contact_length; b1_x2 =  b1_x1 + barrier_length;
+b1_lnsp = linspace(b1_x1,b1_x2,dx_barrier);
+b1_pot = barrier_potential - potential_profile(b1_lnsp); 
+b2_x1= b1_x2+gap_length; b2_x2 =  b2_x1 + barrier_length;
+b2_lnsp = linspace(b2_x1,b2_x2,dx_barrier);
+b2_pot = barrier_potential- potential_profile(b2_lnsp);
+
+g_x1= b1_x2; g_x2 = g_x1 + gap_length;
+g_lnsp = linspace(g_x1,g_x2,dgap);
+g_pot = -potential_profile(g_lnsp);
 
 
-eF_left = 0.2;
-eF_right = 0.3;
-ara_nokta = 0.5;
-
-aralik = 50;
-
-pots = linspace(0.5-eF_left,ara_nokta,aralik);
-pots2 = linspace(ara_nokta,0.5-eF_right,aralik);
-ww = 2/(size(pots,2))*ones(1,size(pots,2));
-ww2 = 2/(size(pots,2))*ones(1,size(pots2,2));
-
-
-potentials = [0 pots 0 pots2 0]*eV; % Double : __|0.3|__|0.3|__
+dummy = linspace(0.2,0.5,dx_barrier);
+%   
+potentials = [-applied_voltage b1_pot g_pot b2_pot  0]*eV; % Double : __|0.3|__|0.3|__
 region_number = size(potentials,2);
-widths = [5 ww 5 ww2 5]*nm;
+%     
+widths = [left_contact_length w_barrier  w_gap w_barrier right_contact_length]*nm;
 heights = zeros(1,region_number); %never used in function
 wave_amplitude = 1;
 %wave_energy = 0.3*eV;
@@ -29,31 +62,55 @@ wave_amplitude = 1;
 
 
 
-wave_energy = linspace(0,0.49,100);
-y = zeros(1,size(wave_energy,2));
-region_matrix = 0;
-r = 0;
-for q = 1:size(wave_energy,2)
-    [y(q),r,region_matrix] = trans_coef(region_number,potentials,widths,heights,wave_energy(q)*eV,wave_amplitude);
-end
+wave_energy = linspace(0,2,200);
+%wave_energy = 0.422;
+%wave_energy = 0.4257; %peak1
+[t,r,region_matrix,k,interface_x] = trans_coef(region_number,potentials,widths,heights,wave_energy*eV,wave_amplitude);
+%y
 clear q;
 
+% bias = linspace(0.005,2,10);
+% J = zeros(1,size(bias,2));
+% 
+% %energy_vektor = linspace(0,0.5,100);
+% temperature = 1;
+% for iter = 1:size(bias,2)
+%     %J(iter) = trapz(current_density(energy_vektor,0,-my_fermi(iter)*q_e,1));
+%     
+%     J(iter) = integral( @(energy)current_density(energy*eV,-bias(iter),temperature),0,0.5);
+%    % fprintf("For Vo : %f\t J = %f\n",bias(iter),J(iter));
+% end
 
-T = @(Ez) trans_coef(region_number,potentials,widths,heights,Ez*eV,wave_amplitude);
-current_density = @(Ez,Efl,Efr) T(Ez)*log((1+ exp((Efl-Ez)/(kB*T)))/(1+ exp((Efr-Ez)/(kB*T))));
 
-J = integral( @(x)current_density(x,eF_left,eF_right),0,0.5*eV);
+%plot(eF_left,deneme,'r');
+
+%end
+ figure(2)
+ plot(wave_energy,log(1-r),'b -',wave_energy,log(t),'g --')
+ xlabel('energy(eV)')
+ grid on
+ ylabel('T(E)')
+ hold on
 
 figure(3)
+plot_regions(region_matrix,k,interface_x)
+
+% figure(4)
+% px = linspace(0,100,100);
+% py = potential_profile(px);
+% plot(px,py,'k -');
+% 
+% xlim([50 60])
 
 
-figure(2)
-plot(wave_energy,log(y),'b -')
-xlabel('energy(eV)')
-grid on
-ylabel('T(E)')
-hold on
+%teorik step pot case
+% Vo = 0.3*eV;
+% E = linspace(0.3,0.5,100)*eV;
+% r_teorik = ((sqrt(E)-sqrt(E-Vo)).^4)/(Vo.*Vo);
+% t_teorik = (2./(1+sqrt(1-Vo./E))).^2;
+%  figure(2)
+%  hold on
+%  plot(E/eV,(1-r_teorik),'g -',E/eV,(1-t_teorik),'k -')
+%  grid on
 
-figure(1)
-plot_regions(region_matrix)
 

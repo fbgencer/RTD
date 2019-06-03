@@ -7,7 +7,6 @@ eV = 1.6*10^-19;
 
 hbar =1.0545718e-34; me = 9.110e-31; q_e =1.602e-19;
 um = 1e-6; nm = 1e-9;
-eV = 1.6*10^-19;
 
 me = 0.063*me;
 
@@ -34,9 +33,9 @@ me = 0.063*me;
 
 
 %double barrier
-potentials = [0 0.32 0 0.5  0]*eV; % Double : __|0.3|__|0.3|__
+potentials = [0 0.5 0 .5 0 0.5 0 0.5 0]*eV; % Double : __|0.3|__|0.3|__
 region_number = size(potentials,2);
-widths = [1 2 5 2 1]*nm;
+widths = [5 2 5 2 5 2  5 2 5]*nm;
 heights = zeros(1,region_number); %never used in function
 wave_amplitude = 1;
 %wave_energy = 0.3*eV;
@@ -45,12 +44,9 @@ wave_amplitude = 1;
 
 
 wave_energy = linspace(0,0.49,100);
-y = zeros(1,size(wave_energy,2));
-region_matrix = 0;
-r = 0;
-for q = 1:size(wave_energy,2)
-    [y(q),r,region_matrix] = trans_coef(region_number,potentials,widths,heights,wave_energy(q)*eV,wave_amplitude);
-end
+
+[y,r,region_matrix] = trans_coef(region_number,potentials,widths,heights,wave_energy*eV,wave_amplitude);
+
 clear q;
 
 subplot(2,1,1)

@@ -1,14 +1,16 @@
-function [t_coef,r_coef,region_matrix,k,interface_x] = trans_coef(region_number,potentials,widths,heights,wave_energy,wave_amplitude)
+function [t_coef,r_coef,region_matrix,k,interface_x] = trans_coef(precision,potentials,widths,wave_energy,wave_amplitude,potential_profile)
 
 %Start defining the regions
 %region_number gives how many region that we have including E>V and E<V zones
+%Also defined as potential vector size.
+
 if(nargin ~= 6)
-	error("Number of input arguments must be 3 for trans_coef function\n");
+	error("Number of input arguments must be 6 for trans_coef function\n");
 end
-if(size(potentials,2) ~= region_number && size(widths,2) ~= region_number ...
-    && size(heights,2) ~= region_number)
+if( size(widths,2) ~= size(potentials,2))
     error("Potential vector or width vector size is not equal\n");
 end
+
 
 %Constants (all MKS, except energy which is in eV)
 hbar =1.0545718e-34; me = 9.110e-31; q_e =1.602e-19;
@@ -17,112 +19,65 @@ eV = 1.6*10^-19;
 me = 0.063*me;
 %me = 0.0919*me;
 
+%Each x value for the barrier has to start from the end of the last region,
+%For the first one start from zero
 
+%assuming potential profile is a function, lets create potential barriers
+%with the applied voltage
+ new_widths = [];
+ new_pots = [];
+x0 = widths(1);
+for iter = 2:size(widths,2)-1
+    reg = widths(1,iter);
+    regw = (reg/precision)*ones(1,precision);
+    new_widths = [new_widths,regw];
+    x1 = x0 + reg;
+    reg_lnsp = linspace(x0,x1,precision);
+    reg_pot = potentials(iter) + potential_profile(reg_lnsp)*eV;
+   new_pots = [new_pots,reg_pot];
+    x0 = x1;
+end
+
+widths = [widths(1) new_widths widths(end)];
+potentials = [potentials(1) new_pots potentials(end)];
+x0 = 0;
+
+region_number = size(potentials,2);
 region_matrix = zeros(1,4,region_number); % from 1 to 4 gives x1,y1,width and height for every region
-
-%potentials = [0, 0.5 , 0]*eV;
-%wave_energy = 1.2*eV;plot_regions(region_matrix)
-
-%wave_amplitude = 0.11;
-
-%it has to start from the end of last region!
-%start from 0
-x0 = 0; % this is for free 
+heights = zeros(1,region_number); %never used but lets define
 for iter = 1:region_number
+    %construct region matrix, it will be used to draw barriers/wells and getting the interface coordinates.
     region_matrix(:,:,iter) = [x0,heights(iter),widths(iter),potentials(iter)];
     %interface point is region_matrix(:,1,1):x_initial + region_matrix(:,1,3):width 
     x0 = region_matrix(:,1,iter)+region_matrix(:,3,iter);
 end
 clear x0;
 
+%interface value represents the intersection of two regions. Each interface
+%point requires a matrix to determine reflection/transmission coefficient
+%between these two region.
+interface_x = region_matrix(1,1,2:end);
+interface_x = reshape(interface_x,[],size(interface_x,3),1);
 
-%interface number, for 3 region we have 2 interface, for 5(double barrier)
-%it is 4, for 7 it is 6 and so on, hence, region_number - 1
-interface_x = [];
-prev_region = region_matrix(:,:,1);
-for iter = 2:region_number
-    current_region = region_matrix(:,:,iter);
-    %if(prev_region(4) ~= current_region(4)) % two regions have different potential, we have interface x for continuity eq.
-        % start point of the current region is our interface value
-        interface_x(end+1) = [current_region(1)];
-    %end
-    prev_region = current_region;
-end
-clear iter;
-clear prev_region;
-
-
-
-%region_matrix(:,:,1) = [x0,heights(1),widths(1),potentials(1)];
-%region_matrix(:,:,2) = [,heights(2),widths(2),potentials(2)]; 
-%region_matrix(:,:,3) = [x2,heights(3),widths(3),potentials(3)];
-%x1 = region_matrix(:,1,1)+region_matrix(:,3,1);
-%x2 = region_matrix(:,1,2)+region_matrix(:,3,2);
-%x3 = region_matrix(:,1,3)+region_matrix(:,3,3);
-
-
-
-%x_vector
-dx = 1e-3;
-%x = region_x:dx:region_matrix(:,1,3)+region_matrix(:,3,3);
-
-%Wave amlitude A and B
+%Wave amlitude A and B, we can calculate each A and B,specificially.
 A = zeros(1,region_number); A(1) = wave_amplitude;
 B = zeros(1,region_number);
 
-
-
 %we want to return transmission coef as vector so we will put loop and create t_coef from energy vector
-
 t_coef = zeros(1,size(wave_energy,2));
 r_coef = zeros(1,size(wave_energy,2));
 
 
 for wave_en_iter = 1:size(wave_energy,2)
-
-
 k = sqrt(2*me*(wave_energy(wave_en_iter)-potentials))/hbar;
+M = zeros(2,2,(region_number-1));
 
-
-
-%Construction of the propogation matrices, M is three dimensional matrix
-%that consist of every propogation matrix in it.
-% M = zeros(2,2,(region_number-1)*2 );
-% k_iter = 1; m_iter = 1;
-% %Create matrices using continuity conditions
-% for x_iter = 1:size(interface_x,2)
-%     for dummy_iter = 1:2 %run exactly two times because for interface from left and right
-%         expo = 1j*conj(k(k_iter))*interface_x(x_iter);
-%         M(:,:,m_iter) = [ exp(expo), exp(-expo) ; conj(-1j*k(k_iter))*exp(expo) , -conj(-1j*k(k_iter))*exp(-expo)];
-%                 
-%         m_iter = m_iter + 1;
-%         k_iter = k_iter + 1;
-%     end
-%     k_iter = k_iter - 1;
-% end
-% clear k_iter;
-% 
-% Mtrans = M(:,:,1);
-% for dummy_iter = 2:size(M,3)
-%     if( mod(dummy_iter,2) == 0)
-%        % disp('even');
-%        %Mtrans = inv(M(:,:,dummy_iter)) * Mtrans;
-%        Mtrans = M(:,:,dummy_iter)\Mtrans;
-%     else
-%         %disp('odd');
-%        Mtrans = M(:,:,dummy_iter) * Mtrans;
-%     end
-% end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%new
-%we need matrix no :region_number-1
-new_M = zeros(2,2,(region_number-1));
-
+%Create below matrix, each interface has its own matrix
 for x_iter = 1:size(interface_x,2)
     k1 = conj(k(x_iter)) ;
     k2 = conj(k(x_iter+1)); 
     x1 = interface_x(x_iter);   
-    new_M(:,:,x_iter) = [(k1+k2)*exp(1i*x1*(k1-k2)) (-k1+k2)*exp(-1i*x1*(k1+k2)) ; ...
+    M(:,:,x_iter) = [(k1+k2)*exp(1i*x1*(k1-k2)) (-k1+k2)*exp(-1i*x1*(k1+k2)) ; ...
         (-k1+k2)*exp(1i*x1*(k1+k2)) (k1+k2)*exp(-1i*x1*(k1-k2))]/(2*k2);   
 end
 
@@ -141,23 +96,21 @@ end
 % ⎣            2⋅k₂                         2⋅k₂            ⎦    
     
 
-lol = new_M(:,:,1);
-
-for iter = 2:size(new_M,3)
-    lol = new_M(:,:,iter)*lol;
+%Ms is M(n)*M(n-1)* .... M(2)*M(1)
+Ms = M(:,:,1);
+for iter = 2:size(M,3)
+    Ms = M(:,:,iter)*Ms;
 end
 
-
-
-B(1) = -(lol(2,1)/lol(2,2) )*A(1); %B1 is calculated directly
-A(3) = (lol(1,1)-lol(1,2)*lol(2,1)/lol(2,2))*A(1);
-%A(3) = (Mtrans(1,1)-Mtrans(1,2)*Mtrans(2,1)/Mtrans(2,2))*A(1);
+B(1) = -(Ms(2,1)/Ms(2,2) )*A(1); %B1 is calculated directly
+A(3) = (Ms(1,1)-Ms(1,2)*Ms(2,1)/Ms(2,2))*A(1);
 
 t_coef(wave_en_iter) = (k(end)/k(1))*(A(3)/A(1))*conj(A(3)/A(1));
 r_coef(wave_en_iter) = (B(1)/A(1))*conj(B(1)/A(1));
 
+%loop end
 end
 
 
-
+%function end
 end

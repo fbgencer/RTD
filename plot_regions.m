@@ -1,6 +1,6 @@
 %Plot barrier function
 
-function plot_regions(region_matrix,k,interface_x)
+function plot_regions(region_matrix,ax)
 %size_vec = [x1 y1 width height] 
 %rectangle('Position',size_vec,'FaceColor',[1 1 1],'EdgeColor','r','LineWidth',1)
 barrier_color = 'b';
@@ -36,9 +36,7 @@ y = [y,yy];
 %line([x1+w x1+w],[y1 y1+h],'Color',barrier_color,'LineWidth',wall_thickness+1);
 end
 
-plot(x,y,'-','Color',barrier_color,'LineWidth',wall_thickness+1);
-
-hold on
+plot(ax,x,y,'-','Color',barrier_color,'LineWidth',wall_thickness+1);
 
 % interface_x = [0,interface_x,19*nm];
 % 

@@ -51,6 +51,7 @@ handles.t = {};
 handles.r = {};
 handles.region_matrix = {};
 handles.current = [];
+handles.temp = 300;
 
 handles.simulation_type = "tcoef_ivcurve";
 
@@ -262,8 +263,8 @@ disp(handles.simulation_type);
 switch str{val}
 case 'Transmission Coefficient'
     if(handles.simulation_type == "tcoef" || handles.simulation_type == "tcoef_ivcurve")
-        cla(handles.axes2,'reset');
-        handles.plot2 = plot(handles.axes2,handles.wave_energy,handles.t{handles.applied_voltage},'b -');
+        
+        handles.plot2 = plot(handles.axes2,handles.wave_energy,handles.t{handles.applied_voltage});
         xlabel(handles.axes2,'energy(eV)')
         grid on;
         ylabel(handles.axes2,'T(E)')
@@ -271,13 +272,19 @@ case 'Transmission Coefficient'
     end
 case 'Current - Voltage' % User selects peaks.
    if(handles.simulation_type == "ivcurve" || handles.simulation_type == "tcoef_ivcurve")
-        cla(handles.axes2,'reset');
+        %cla(handles.axes2,'reset');
         AV = linspace(handles.applied_voltage_low,handles.applied_voltage_high,handles.applied_voltage_size);
-        plot(handles.axes2,AV,handles.current,'b -');
-        xlabel(handles.axes2,'Voltage(V)');
-        grid on;
-        ylabel(handles.axes2,'Current Density');
+        Temp = handles.temp;
+        plot(handles.axes2,AV,handles.current,'b -','LineWidth',1.5);
+        ylabel(handles.axes2,'$(J) (A/m^{2})$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+        xlabel(handles.axes2,'$AV (V)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+        plot_label = [ 'T ',num2str(Temp),'$^oK$'] ;
+        legend(handles.axes2,plot_label);
+        handles.axes2.Legend.Location ='northeast';
+        handles.axes2.Legend.Interpreter = "Latex";
         handles.axes2.YScale = handles.yaxis_type;
+        grid(handles.axes2,'on');
+    
    end
 end
 
@@ -326,8 +333,8 @@ me = 0.063*me;
 %me = 0.0919*me;
 kB = 1.38 *1e-23;
 
-left_contact_width = 5;
-right_contact_width = 5;
+left_contact_width = 10;
+right_contact_width = 10;
 
 applied_voltage = 0;
 
@@ -386,13 +393,14 @@ function simulate_button_Callback(hObject, eventdata, handles)
 q =1.602e-19;
 um = 1e-6; nm = 1e-9;
 eV = 1.6*10^-19;
-hbar =1.0545718e-34; me = 9.110e-31;
+hbar =1.0545718e-34; h = 2*pi*hbar;
+me = 9.110e-31;
 me = 0.063*me;
 %me = 0.0919*me;
 kB = 1.38 *1e-23;
 
-left_contact_width = 5;
-right_contact_width = 5;
+left_contact_width = 10;
+right_contact_width = 10;
 
 AV = linspace(handles.applied_voltage_low,handles.applied_voltage_high,handles.applied_voltage_size);
 widths = [left_contact_width transpose(handles.uitable.Data(:,1)) right_contact_width]*nm;
@@ -403,7 +411,7 @@ if(handles.simulation_type == "tcoef_ivcurve" || handles.simulation_type == "tco
 for iter = 1:size(AV,2)
 
 percent =  round(100*iter/handles.applied_voltage_size);   
-handles.simulate_button.String = "Simulating %" + num2str(percent);
+handles.simulate_button.String = "Simulating(1/2) " + num2str(percent) + "%";
 drawnow;
 
 applied_voltage = AV(1,iter);
@@ -421,7 +429,7 @@ if(handles.simulation_type == "tcoef_ivcurve" || handles.simulation_type == "ivc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for iter = 1:size(AV,2)
 percent =  round(100*iter/handles.applied_voltage_size);   
-handles.simulate_button.String = "Simulating %" + num2str(percent);
+handles.simulate_button.String = "Simulating(2/2)" + num2str(percent) + "%";
 drawnow;
 applied_voltage = AV(iter);
 potentials = [-applied_voltage transpose(handles.uitable.Data(:,2)) 0]*eV;
@@ -430,39 +438,85 @@ applied_voltage*(sum(widths(1:end-1))/(widths(1)-sum(widths(1:end-1)) ) ) );
 % first we calculate the transmission coefficients of all energies up to
 % the fermi energy. transSteps need to be a large number to get all details
 % in the transmission spectrum, because the peaks are very sharp
-steps=1;
-EfL=0.005*eV; % fermi energy in left metal
-EfR=0.005*eV; % right metal
-for n=1:steps
-    [t(n),r(n),region_matrix,k,interface_x] = trans_coef(handles.precision,potentials,widths,EfL/steps*(n),wave_amplitude,potential_profile);
-    %T(n)=rtTransmission(AV, EfL/steps*(n), 6);
-end
-% Integrate numerically the expression for the current, integration is
-% performed from 0 to EfL
-I=0;
-for n=1:steps
-    Energy=applied_voltage *q + EfL/steps*(n-1);
-    
-    Fl=DistFermiDirac(Energy,applied_voltage*q+EfL,0);
-    Fr=DistFermiDirac(Energy,EfR,0);
-    I = I + (t(n)*(Fl-Fr)*sqrt(Energy))*EfL/steps;
-end
-handles.current(iter) = (I);
-end
+% steps=1;
+% EfL=0.005*eV; % fermi energy in left metal
+% EfR=0.005*eV; % right metal
+% for n=1:steps
+%     [t(n),r(n),region_matrix,k,interface_x] = trans_coef(handles.precision,potentials,widths,EfL/steps*(n),wave_amplitude,potential_profile);
+%     %T(n)=rtTransmission(AV, EfL/steps*(n), 6);
+% end
+% % Integrate numerically the expression for the current, integration is
+% % performed from 0 to EfL
+% I=0;
+% for n=1:steps
+%     Energy=applied_voltage *q + EfL/steps*(n-1);
+%     
+%     Fl=DistFermiDirac(Energy,applied_voltage*q+EfL,0);
+%     Fr=DistFermiDirac(Energy,EfR,0);
+%     I = I + (t(n)*(Fl-Fr)*sqrt(Energy))*EfL/steps;
+% end
+% handles.current(iter) = (I);
+% end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Ex burada wave energy cünkü transmission coef'i oyle buluyor
+%gerilim altında oluşacak senaryo ise
+%J = 4*pi*me*q/(h^3) Integrate[T(Ex)N(Ex)dEx,Emin,Emax];
+%numerator = 1+exp(-(Ex-Ef1)/(kB*Temp));
+%denominator = 1+exp(-(Ex-Ef2)/(kB*Temp));
+%N(Ex) = kB*Temp*log(numerator/denominator);
+%AV gerilim altında
+%denominator = 1+exp(-(Ex + AV*eV - Ef2)/(kB*Temp));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Emin = 0.005*eV;
+Emax = 0.49*eV;
+Temp = handles.temp;
+Ef = 0.005*eV;
+steps = 50;
+Ex = linspace(Emin,Emax,steps);
+
+dEx = (Emax-Emin)/steps;
+J = 0;
+for n=1:steps
+    numerator = 1+exp(-(Ex(n)-Ef)/(kB*Temp));
+    denominator = 1+exp(-(Ex(n) + applied_voltage*eV - Ef)/(kB*Temp));
+    [t,r,region_matrix] = trans_coef(handles.precision,potentials,widths,Ex(n),1,potential_profile);
+    N_Ex = log(numerator/denominator);
+    %J = 4*pi*me*q/(h^3) Integrate[T(Ex)N(Ex)dEx,Emin,Emax];
+    J = J + (t * N_Ex * dEx);
     
-cla(handles.axes2,'reset');
-grid on;
+%     Energy=applied_voltage * eV + EfL/steps*(n-1);
+%     Fl=DistFermiDirac(Energy,applied_voltage * eV+EfL,Temp);
+%     Fr=DistFermiDirac(Energy,EfR,Temp);
+%     I = I + (t(n)*(Fl-Fr)*sqrt(Energy))*EfL/steps;
+end
+%I = (q*me*kB*Temp/(2*pi*pi*hbar^3))*I;
+J = kB*Temp*4*pi*me*q/(h^3)*J;
+handles.current(iter) = (J);
+end
+
+end
+
 if(handles.simulation_type == "ivcurve")
-    plot(handles.axes2,AV,handles.current,'r -');
-    xlabel(handles.axes2,'Voltage(V)');
-    ylabel(handles.axes2,'Current Density');
+    plot(handles.axes2,AV,handles.current,'b -','LineWidth',1.5);
+    ylabel(handles.axes2,'$ln(J) (A/m^{2})$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+    xlabel(handles.axes2,'$AV (V)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+    plot_label = [ 'T ',num2str(Temp),'$^oK$'] ;
+    legend(plot_label);
+    ax = gca ;
+    ax.Legend.Location ='northeast';
+    ax.Legend.Interpreter = "Latex";
+    grid on;
     
 else 
-    handles.plot2 = plot(handles.axes2,handles.wave_energy,handles.t{handles.applied_voltage},'b -');
-    xlabel(handles.axes2,'energy(eV)')
-    ylabel(handles.axes2,'T(E)')
+    plot(handles.axes2,handles.wave_energy,handles.t{handles.applied_voltage},'b -','LineWidth',1.5);
+    ylabel(handles.axes2,'$T$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+    xlabel(handles.axes2,'$E(eV)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+    grid on;
+    %f1 = figure;
+    %plot(handles.wave_energy,handles.t{handles.applied_voltage},'b -');
     
     plot_regions(handles.region_matrix{handles.applied_voltage},handles.axes1);
 end
@@ -474,7 +528,7 @@ guidata(hObject,handles);
 
 function applied_voltage_slider_Callback(hObject, eventdata, handles)
 
-if(handles.simulation_type == "tcoef_ivcurve" || handles.simulation_type == "tcoef")
+if(handles.plot_type_popup.Value == 1 && (handles.simulation_type == "tcoef_ivcurve" || handles.simulation_type == "tcoef") )
 handles.applied_voltage = round(map(get(hObject,'Value'),handles.applied_voltage_slider.Min,handles.applied_voltage_slider.Max, ...
     1,handles.applied_voltage_size));
 
@@ -484,12 +538,11 @@ val  =  handles.applied_voltage * (handles.applied_voltage_high - handles.applie
 
 handles.applied_voltage_text.String = "Applied Voltage:"+num2str(val);
 
-cla(handles.axes2,'reset');
-handles.plot2 = plot(handles.axes2,handles.wave_energy,handles.t{handles.applied_voltage},'b -');
-xlabel(handles.axes2,'energy(eV)')
-grid on
-ylabel(handles.axes2,'T(E)')
-hold on
+
+plot(handles.axes2,handles.wave_energy,handles.t{handles.applied_voltage},'b -','LineWidth',1.5);
+ylabel(handles.axes2,'$T$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+xlabel(handles.axes2,'$E(eV)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+grid on;
 
 plot_regions(handles.region_matrix{handles.applied_voltage},handles.axes1);
 handles.axes2.YScale = handles.yaxis_type;
@@ -577,7 +630,6 @@ function [res] = map(x, in_min, in_max, out_min,out_max)
 % --- Executes during object creation, after setting all properties.
 function applied_voltage_text_CreateFcn(hObject, eventdata, handles)
 
-
 function [probability] = DistFermiDirac(E, Ef, T)
     kB = 1.38e-23;
     if(T == 0)
@@ -592,3 +644,21 @@ function [probability] = DistFermiDirac(E, Ef, T)
         denom=exp((E-Ef)/(kB*T)) + 1;
     end
     probability = 1/denom;
+
+
+
+function temperature_value_Callback(hObject, eventdata, handles)
+handles.temp = str2double(get(hObject,'String')) 
+
+
+% --- Executes during object creation, after setting all properties.
+function temperature_value_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to temperature_value (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

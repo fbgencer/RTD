@@ -8,18 +8,18 @@ me = 0.063*me;
 %me = 0.0919*me;
 kB = 1.38 *1e-23;
 
-left_contact_width = 5;
-right_contact_width = 5;
+left_contact_width = 10;
+right_contact_width = 10;
 barrier_width = 2;
 gap_width = 5;
 
 barrier_potential = 0.5; 
-applied_voltage = 0.4;
+applied_voltage = -0.3;
 gap_potential = 0;
 
-precision = 50;
+precision =100;
 
-potentials = [-applied_voltage barrier_potential gap_potential barrier_potential gap_potential barrier_potential 0]*eV; 
+potentials = [-applied_voltage barrier_potential gap_potential  barrier_potential gap_potential  barrier_potential  0]*eV; 
 widths = [left_contact_width barrier_width  gap_width barrier_width gap_width barrier_width right_contact_width]*nm;
 wave_amplitude = 1;
 
@@ -31,13 +31,12 @@ wave_energy = linspace(0,0.5,200);
 
 
 figure(2)
-plot(wave_energy,log(1-r),'b -',wave_energy,log(t),'g --')
-xlabel('energy(eV)')
-grid on
-ylabel('T(E)')
-hold on
+plot(wave_energy,log(t),'b -','LineWidth',1.5);
+ylabel('$ln(T)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+xlabel('$E(eV)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+grid on;
 
 myfig3 = figure(3);
 ax2  = axes;
-plot_regions(region_matrix,k,interface_x,ax2);
+plot_regions(region_matrix,ax2);
 grid on

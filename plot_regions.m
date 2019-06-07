@@ -37,6 +37,8 @@ y = [y,yy];
 end
 
 plot(ax,x,y,'-','Color',barrier_color,'LineWidth',wall_thickness+1);
+ylabel(ax,'$V(x)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
+xlabel(ax,'$x(nm)$','Interpreter','latex','FontSize',14,'FontWeight','bold')
 
 % interface_x = [0,interface_x,19*nm];
 % 
